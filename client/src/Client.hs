@@ -45,9 +45,9 @@ instance StoreData Model where
     Update new -> return $ Model (doc <> new)
     Sync -> do
       _ <- forkIO $ do
-        baseUrl <- sameOriginBaseUrl
+        baseUrl <- sameOriginBaseUrl Nothing
         result <- runExceptT $
-          sync doc (error "manager shouldn't be touched") (baseUrl "/")
+          sync doc (error "manager shouldn't be touched") baseUrl
         case result of
           Right new ->
             alterStore store $ Update new

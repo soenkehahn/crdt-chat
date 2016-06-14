@@ -1,5 +1,5 @@
 
-module AppSpec where
+module ServerSpec where
 
 import           CRDT.TreeVector
 import           Control.Exception (throwIO, ErrorCall(..))
@@ -12,7 +12,7 @@ import           Servant.Common.Req
 import           Test.Hspec
 
 import           Api
-import           App (mkApp)
+import           Server (mkApp)
 
 getDocument :: Manager -> BaseUrl ->
   ExceptT ServantError IO (TreeVector Char)

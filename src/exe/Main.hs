@@ -1,7 +1,8 @@
 
 import           Network.Wai
 import           Network.Wai.Handler.Warp as Warp
-import App
+
+import           Server
 
 main :: IO ()
 main = do

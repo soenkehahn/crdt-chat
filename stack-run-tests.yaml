@@ -1,6 +1,6 @@
 resolver: lts-5.12
 packages:
-  - '.'
+  - ./all-tests/
   - location:
       git: https://github.com/haskell-servant/servant
       commit: 0c8bd4b
@@ -17,3 +17,4 @@ extra-deps:
   - wai-make-assets-0.1.1
   - warp-3.2.6
   - http2-1.6.0
+  - react-flux-1.1.0

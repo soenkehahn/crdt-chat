@@ -14,7 +14,7 @@ dependencies:
 
 tests:
   spec:
-    main: Spec.hs
+    main: ServerTests.hs
     source-dirs:
       - test
       - src
@@ -28,3 +28,4 @@ executables:
     main: Main.hs
     source-dirs:
       - src
+      - src/exe

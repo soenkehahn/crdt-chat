@@ -1,24 +1,27 @@
 name: patches-client
 
 dependencies:
-  - base < 5
+      - base < 5
+      - react-flux
 
 tests:
   spec:
-    main: Spec.hs
+    main: ClientTests.hs
     source-dirs:
       - test
+      - ../src
     dependencies:
       - hspec
+      - mockery
 
 executables:
   patches-client:
     main: Main.hs
     source-dirs:
       - src
+      - src/exe
       - ../src
     dependencies:
-      - react-flux
       - crdt-tree-vector
       - aeson
       - containers

@@ -1,0 +1,34 @@
+name: run-tests
+
+dependencies:
+  - base < 5
+
+executables:
+  noop:
+    main: Noop.hs
+
+tests:
+  spec:
+    main: AllTests.hs
+    source-dirs:
+      - ./.
+      - ../client/test
+      - ../client/src
+      - ../src
+      - ../test
+    dependencies:
+      - hspec
+      - http-client
+      - servant-client
+      - mockery
+      - transformers
+      - wai
+      - wai-make-assets
+      - servant-server
+      - warp
+      - directory
+      - react-flux
+      - crdt-tree-vector
+      - aeson
+      - containers
+      - servant

@@ -1,5 +1,5 @@
 
-module App where
+module Server where
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Trans.Except
@@ -18,7 +18,7 @@ mkApp = do
 
 server :: Application -> Db -> Server Api
 server assets db =
-  (getDocument :<|> App.sync db) :<|>
+  (getDocument :<|> Server.sync db) :<|>
   assets
 
 type Handler = ExceptT ServantErr IO

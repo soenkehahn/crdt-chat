@@ -1,17 +1,19 @@
 
 module ClientSpec where
 
+import           CRDT.TreeVector
 import           React.Flux
 import           Test.Hspec
 import           Test.Mockery.Directory
 
+import           Client
+
+spec :: Spec
 spec = do
   describe "transform" $ do
-    context "ButtonSync" $ do
-      it "sends a sync event" $ do
-        inTempDirectory $ do
-          pending
-
     context "Update" $ do
       it "incorporates updates" $ do
-        pending
+        let model :: Model
+            model = Model mempty
+            update = mkPatch (Client 0) mempty "foo"
+        transform (Update update) model `shouldReturn` Model update

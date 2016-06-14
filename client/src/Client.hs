@@ -5,6 +5,7 @@
 
 module Client where
 
+import           Data.Monoid
 import           Data.String
 import           React.Flux
 
@@ -13,14 +14,24 @@ import           Api
 run :: IO ()
 run = reactRender "main" viewPatches ()
 
-store :: ReactStore Document
-store = mkStore mempty
+data Model
+  = Model {
+    document :: Document
+  }
+  deriving (Eq, Show)
 
-instance StoreData Document where
-  type StoreAction Document = ()
-  transform () doc = return doc
+store :: ReactStore Model
+store = mkStore (Model mempty)
+
+data Msg
+  = Update Document
+
+instance StoreData Model where
+  type StoreAction Model = Msg
+  transform msg (Model doc) = case msg of
+    Update new -> return $ Model (doc <> new)
 
 viewPatches :: ReactView ()
 viewPatches = defineControllerView "patches app" store $ \ doc () -> do
-  text_ (fromString (show doc))
+  text_ (fromString (show (document doc)))
   text_ "bla"

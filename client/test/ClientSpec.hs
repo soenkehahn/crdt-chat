@@ -4,7 +4,6 @@ module ClientSpec where
 import           CRDT.TreeVector
 import           React.Flux
 import           Test.Hspec
-import           Test.Mockery.Directory
 
 import           Client
 

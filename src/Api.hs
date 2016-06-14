@@ -4,6 +4,8 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Api where
 
 import           CRDT.TreeVector

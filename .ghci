@@ -1,1 +1,2 @@
 :set -iclient/test -itest -isrc -iclient/src
+:set -Wall -fno-warn-name-shadowing -fwarn-tabs -fwarn-incomplete-uni-patterns -fwarn-incomplete-record-updates

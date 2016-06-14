@@ -11,6 +11,10 @@ dependencies:
       - servant
       - transformers
       - ghcjs-prim
+      - http-client
+
+ghc-options:
+  -Wall
 
 tests:
   spec:
@@ -21,7 +25,6 @@ tests:
       - src
     dependencies:
       - hspec
-      - mockery
 
 executables:
   patches-client:

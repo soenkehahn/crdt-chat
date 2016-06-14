@@ -9,13 +9,16 @@ import           Control.Concurrent
 import           Control.Monad.Trans.Except
 import           Data.Monoid
 import           Data.String
+import           Network.HTTP.Client
 import           React.Flux
 import           Servant.API
 import           Servant.Client
+import           Servant.Common.Req
 
 import           Api
 import           SameOrigin
 
+sync :: Document -> Manager -> BaseUrl -> ClientM Document
 (_ :<|> sync) :<|> _ = client api
 
 run :: IO ()
@@ -41,7 +44,7 @@ instance StoreData Model where
   transform msg (Model doc) = case msg of
     Update new -> return $ Model (doc <> new)
     Sync -> do
-      forkIO $ do
+      _ <- forkIO $ do
         baseUrl <- sameOriginBaseUrl
         result <- runExceptT $
           sync doc (error "manager shouldn't be touched") (baseUrl "/")

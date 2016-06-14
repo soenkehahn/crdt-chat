@@ -20,7 +20,6 @@ tests:
       - hspec
       - http-client
       - servant-client
-      - mockery
       - transformers
       - wai
       - wai-make-assets

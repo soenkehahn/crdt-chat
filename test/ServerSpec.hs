@@ -16,8 +16,10 @@ import           Server (mkApp)
 
 getDocument :: Manager -> BaseUrl ->
   ExceptT ServantError IO (TreeVector Char)
+sync :: Document -> Manager -> BaseUrl -> ClientM Document
 (getDocument :<|> sync) :<|> _ = client api
 
+spec :: Spec
 spec = do
   around withApp $ do
     describe "/" $ do

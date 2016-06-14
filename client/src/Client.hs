@@ -48,6 +48,7 @@ instance StoreData Model where
         baseUrl <- sameOriginBaseUrl Nothing
         result <- runExceptT $
           sync doc (error "manager shouldn't be touched") baseUrl
+        _ <- forkIO (threadDelay 1000000 >> alterStore store Sync)
         case result of
           Right new ->
             alterStore store $ Update new

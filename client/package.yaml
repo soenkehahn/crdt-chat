@@ -3,6 +3,14 @@ name: patches-client
 dependencies:
       - base < 5
       - react-flux
+      - servant-client
+      - crdt-tree-vector
+      - ghcjs-base
+      - aeson
+      - containers
+      - servant
+      - transformers
+      - ghcjs-prim
 
 tests:
   spec:
@@ -10,6 +18,7 @@ tests:
     source-dirs:
       - test
       - ../src
+      - src
     dependencies:
       - hspec
       - mockery
@@ -21,8 +30,3 @@ executables:
       - src
       - src/exe
       - ../src
-    dependencies:
-      - crdt-tree-vector
-      - aeson
-      - containers
-      - servant

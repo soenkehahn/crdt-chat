@@ -16,13 +16,18 @@ import           App (mkApp)
 
 getDocument :: Manager -> BaseUrl ->
   ExceptT ServantError IO (TreeVector Char)
-getDocument :<|> _ = client api
+(getDocument :<|> sync) :<|> _ = client api
 
 spec = do
   around withApp $ do
     describe "/" $ do
       it "returns an empty TreeVector" $ \ port -> do
         try port getDocument `shouldReturn` (mempty :: Document)
+
+      it "allows to send a patch" $ \ port -> do
+        let patch = mkPatch (Client 0) mempty "foo"
+        synced <- try port (sync patch)
+        synced `shouldBe` patch
 
 withApp :: (Port -> IO a) -> IO a
 withApp action =

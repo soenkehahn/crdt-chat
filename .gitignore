@@ -1,3 +1,4 @@
 /assets/
 /client/.stack-work/
 /client/patches-client.cabal
+/patches.cabal

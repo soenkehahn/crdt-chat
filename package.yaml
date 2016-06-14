@@ -1,0 +1,30 @@
+name: patches
+
+dependencies:
+      - base < 5
+      - warp
+      - wai
+      - wai-make-assets
+      - servant
+      - crdt-tree-vector
+      - containers
+      - transformers
+      - aeson
+      - servant-server
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs:
+      - test
+      - src
+    dependencies:
+      - hspec
+      - http-client
+      - servant-client
+
+executables:
+  patches-server:
+    main: Main.hs
+    source-dirs:
+      - src

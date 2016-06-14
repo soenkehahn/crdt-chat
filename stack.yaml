@@ -1,0 +1,17 @@
+resolver: lts-6.3
+packages:
+  - '.'
+  - location:
+      git: https://github.com/haskell-servant/servant
+      commit: 0c8bd4b
+    extra-dep: true
+    subdirs:
+      - servant
+      - servant-client
+      - servant-server
+  - location:
+      git: https://github.com/soenkehahn/crdt-tree-vector
+      commit: 7c98fa4
+    extra-dep: true
+extra-deps:
+  - wai-make-assets-0.1.1

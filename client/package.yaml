@@ -16,5 +16,10 @@ executables:
     main: Main.hs
     source-dirs:
       - src
+      - ../src
     dependencies:
       - react-flux
+      - crdt-tree-vector
+      - aeson
+      - containers
+      - servant

@@ -1,4 +1,4 @@
-/assets/
+/assets/*.js
 /client/.stack-work/
 /client/patches-client.cabal
 /patches.cabal

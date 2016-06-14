@@ -16,7 +16,7 @@ import           Servant.API
 import           Text.Read
 
 type Api =
-  Get '[JSON] Document :<|>
+  "api" :> Get '[JSON] Document :<|>
   Raw
 
 api :: Proxy Api

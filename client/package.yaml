@@ -16,3 +16,5 @@ executables:
     main: Main.hs
     source-dirs:
       - src
+    dependencies:
+      - react-flux

@@ -14,9 +14,10 @@ dependencies:
 
 tests:
   spec:
-    main: ServerTests.hs
+    main: Main.hs
     source-dirs:
       - test
+      - test/exe
       - src
     dependencies:
       - hspec

@@ -19,9 +19,10 @@ ghc-options:
 
 tests:
   spec:
-    main: ClientTests.hs
+    main: Main.hs
     source-dirs:
       - test
+      - test/exe
       - ../src
       - src
     dependencies:

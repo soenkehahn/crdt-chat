@@ -12,6 +12,7 @@ dependencies:
       - transformers
       - ghcjs-prim
       - http-client
+      - deepseq
 
 ghc-options:
   -Wall

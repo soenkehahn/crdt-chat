@@ -1,14 +1,24 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 module Client where
 
+import           CRDT.TreeVector
+import           CRDT.TreeVector.Internal
 import           Control.Concurrent
+import           Control.DeepSeq
 import           Control.Monad.Trans.Except
 import           Data.Monoid
 import           Data.String
+import           JavaScript.Object
+--import           Data.Text
+--import           Data.Text.IO as Text
+import           GHC.Generics
 import           Network.HTTP.Client
 import           React.Flux
 import           Servant.API
@@ -38,6 +48,14 @@ store = mkStore (Model mempty)
 data Msg
   = Update Document
   | Sync
+  | UserInput String
+  deriving (Generic)
+
+instance NFData Msg
+instance NFData (TreeVector Char)
+instance NFData (Node Char)
+instance NFData (Element Char)
+instance NFData CRDT.TreeVector.Client
 
 instance StoreData Model where
   type StoreAction Model = Msg
@@ -54,7 +72,15 @@ instance StoreData Model where
             alterStore store $ Update new
       return $ Model doc
 
+    UserInput s -> return (Model (doc <> mkPatch (Client 0) doc s))
+
 viewPatches :: ReactView ()
-viewPatches = defineControllerView "patches app" store $ \ doc () -> do
-  text_ (fromString (show (document doc)))
-  text_ "bla"
+viewPatches = defineControllerView "patches app" store $ \ model () -> do
+  input_ $
+    "value" &= getVector (document model) :
+    (onChange $ \ event -> [SomeStoreAction store (UserInput (target event "value"))]) :
+    []
+  br_ []
+  text_ $ fromString $ show (getVector $ document model)
+  br_ []
+  text_ $ fromString $ show (document model)

@@ -16,3 +16,10 @@ spec = do
             model = Model mempty
             update = mkPatch (Client 0) mempty "foo"
         transform (Update update) model `shouldReturn` Model update
+
+    context "UserInput" $ do
+      it "changes the model" $ do
+        let model :: Model
+            model = Model mempty
+        Model doc <- transform (UserInput "foo") model
+        getVector doc `shouldBe` "foo"

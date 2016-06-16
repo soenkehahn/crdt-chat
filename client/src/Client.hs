@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -15,9 +16,6 @@ import           Control.DeepSeq
 import           Control.Monad.Trans.Except
 import           Data.Monoid
 import           Data.String
-import           JavaScript.Object
---import           Data.Text
---import           Data.Text.IO as Text
 import           GHC.Generics
 import           Network.HTTP.Client
 import           React.Flux

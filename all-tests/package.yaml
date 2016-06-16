@@ -20,7 +20,6 @@ tests:
       - hspec
       - http-client
       - deepseq
-      - ghcjs-base
       - servant-client
       - transformers
       - wai

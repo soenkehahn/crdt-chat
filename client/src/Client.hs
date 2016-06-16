@@ -27,7 +27,7 @@ import           Api
 import           SameOrigin
 
 sync :: Document -> Manager -> BaseUrl -> ClientM Document
-(_ :<|> sync) :<|> _ = client api
+sync :<|> _ = client api
 
 run :: IO ()
 run = do

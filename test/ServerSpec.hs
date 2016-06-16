@@ -14,17 +14,15 @@ import           Test.Hspec
 import           Api
 import           Server (mkApp)
 
-getDocument :: Manager -> BaseUrl ->
-  ExceptT ServantError IO (TreeVector Char)
 sync :: Document -> Manager -> BaseUrl -> ClientM Document
-(getDocument :<|> sync) :<|> _ = client api
+sync :<|> _ = client api
 
 spec :: Spec
 spec = do
   around withApp $ do
-    describe "/" $ do
+    describe "/api/sync" $ do
       it "returns an empty TreeVector" $ \ port -> do
-        try port getDocument `shouldReturn` (mempty :: Document)
+        try port (sync mempty) `shouldReturn` (mempty :: Document)
 
       it "allows to send a patch" $ \ port -> do
         let patch = mkPatch (Client 0) mempty "foo"

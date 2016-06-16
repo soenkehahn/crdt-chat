@@ -18,13 +18,10 @@ mkApp = do
 
 server :: Application -> Db -> Server Api
 server assets db =
-  (getDocument :<|> Server.sync db) :<|>
+  Server.sync db :<|>
   assets
 
 type Handler = ExceptT ServantErr IO
-
-getDocument :: Handler Document
-getDocument = return mempty
 
 sync :: Db -> Document -> Handler Document
 sync db new = liftIO $ Db.sync db new

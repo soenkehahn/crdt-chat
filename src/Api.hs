@@ -18,9 +18,7 @@ import           Servant.API
 import           Text.Read
 
 type Api =
-  "api" :> (
-    Get '[JSON] Document :<|>
-    "sync" :> ReqBody '[JSON] Document :> Post '[JSON] Document) :<|>
+  "api" :> "sync" :> ReqBody '[JSON] Document :> Post '[JSON] Document :<|>
   Raw
 
 api :: Proxy Api

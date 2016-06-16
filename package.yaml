@@ -11,6 +11,7 @@ dependencies:
       - transformers
       - aeson
       - servant-server
+      - text
 
 tests:
   spec:

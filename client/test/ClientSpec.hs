@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module ClientSpec where
 
@@ -13,13 +14,13 @@ spec = do
     context "Update" $ do
       it "incorporates updates" $ do
         let model :: Model
-            model = Model mempty
-            update = mkPatch (Client 0) mempty "foo"
-        transform (Update update) model `shouldReturn` Model update
+            model = Model mempty ""
+            update = mkPatch (Client 0) mempty ["foo"]
+        transform (Update update) model `shouldReturn` Model update ""
 
-    context "UserInput" $ do
+    context "Input" $ do
       it "changes the model" $ do
         let model :: Model
-            model = Model mempty
-        Model doc <- transform (UserInput "foo") model
-        getVector doc `shouldBe` "foo"
+            model = Model mempty ""
+        Model doc _ <- transform Enter =<< transform (Input "foo") model
+        getVector doc `shouldBe` ["foo"]

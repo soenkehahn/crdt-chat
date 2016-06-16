@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module ServerSpec where
 
@@ -25,7 +26,7 @@ spec = do
         try port (sync mempty) `shouldReturn` (mempty :: Document)
 
       it "allows to send a patch" $ \ port -> do
-        let patch = mkPatch (Client 0) mempty "foo"
+        let patch = mkPatch (Client 0) mempty ["foo"]
         synced <- try port (sync patch)
         synced `shouldBe` patch
 

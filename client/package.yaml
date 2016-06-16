@@ -13,6 +13,8 @@ dependencies:
       - ghcjs-prim
       - http-client
       - deepseq
+      - text
+      - string-conversions
 
 ghc-options:
   -Wall

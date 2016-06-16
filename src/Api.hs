@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
@@ -14,6 +15,7 @@ import           Data.Aeson
 import           Data.Aeson.Types
 import           Data.Map
 import           Data.Proxy
+import           Data.Text
 import           Servant.API
 import           Text.Read
 
@@ -26,9 +28,9 @@ api = Proxy
 
 -- * types
 
-type Document = TreeVector Char
+type Document = TreeVector Text
 
-instance FromJSON Document
+instance FromJSON a => FromJSON (TreeVector a)
 instance FromJSON a => FromJSON (Map Client a) where
   parseJSON v = do
     m :: Map String a <- parseJSON v
@@ -38,16 +40,16 @@ instance FromJSON a => FromJSON (Map Client a) where
       convert s = case readMaybe s of
         Just id -> return $ Client id
         Nothing -> fail ("not a client id: " ++ s)
-instance FromJSON (Node Char)
-instance FromJSON (Element Char)
+instance FromJSON a => FromJSON (Node a)
+instance FromJSON a => FromJSON (Element a)
 
-instance ToJSON Document
+instance ToJSON a => ToJSON (TreeVector a)
 instance ToJSON a => ToJSON (Map Client a) where
   toJSON m = toJSON (mapKeys convert m :: Map String a)
     where
       convert (Client id) = show id
-instance ToJSON (Node Char)
-instance ToJSON (Element Char)
+instance ToJSON a => ToJSON (Node a)
+instance ToJSON a => ToJSON (Element a)
 
 firstM :: Functor m => (a -> m b) -> (a, c) -> m (b, c)
 firstM f (a, c) = (, c) <$> f a

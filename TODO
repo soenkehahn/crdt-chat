@@ -1,3 +1,4 @@
+- Allow threads
 - don't recalculate
+- uuids?
 - calculate in background
-- make into chat?

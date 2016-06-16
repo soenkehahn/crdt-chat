@@ -74,10 +74,10 @@ instance StoreData Model where
 
 viewPatches :: ReactView ()
 viewPatches = defineControllerView "patches app" store $ \ model () -> do
-  input_ $
-    "value" &= getVector (document model) :
-    (onChange $ \ event -> [SomeStoreAction store (UserInput (target event "value"))]) :
-    []
+  textarea_
+    ("value" &= getVector (document model) :
+     (onChange $ \ event -> [SomeStoreAction store (UserInput (target event "value"))]) :
+     []) mempty
   br_ []
   text_ $ fromString $ show (getVector $ document model)
   br_ []

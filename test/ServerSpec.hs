@@ -2,7 +2,7 @@
 
 module ServerSpec where
 
-import           CRDT.TreeVector
+import           Data.Crdt.TreeVector
 import           Control.Exception (throwIO, ErrorCall(..))
 import           Control.Monad.Trans.Except
 import           Network.HTTP.Client

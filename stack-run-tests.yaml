@@ -9,9 +9,9 @@ packages:
       - servant
       - servant-client
       - servant-server
-  - location:
-      git: https://github.com/soenkehahn/crdt-tree-vector
-      commit: 7c98fa4
+  - location: /home/shahn/src/crdt-tree-vector
+    #  git: https://github.com/soenkehahn/crdt-tree-vector
+    #  commit: 7c98fa4
     extra-dep: true
   - location: ../react-flux
 extra-deps:

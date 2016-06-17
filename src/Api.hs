@@ -9,10 +9,10 @@
 
 module Api where
 
-import           CRDT.TreeVector
-import           CRDT.TreeVector.Internal
 import           Data.Aeson
 import           Data.Aeson.Types
+import           Data.Crdt.TreeVector
+import           Data.Crdt.TreeVector.Internal
 import           Data.Map
 import           Data.Proxy
 import           Data.Text

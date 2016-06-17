@@ -2,7 +2,7 @@
 
 module ClientSpec where
 
-import           CRDT.TreeVector
+import           Data.Crdt.TreeVector
 import           React.Flux
 import           Test.Hspec
 
@@ -22,5 +22,5 @@ spec = do
       it "changes the model" $ do
         let model :: Model
             model = Model mempty ""
-        Model doc _ <- transform Enter =<< transform (Input "foo") model
-        getVector doc `shouldBe` ["foo"]
+        Model _ text <- transform (Input "foo") model
+        text `shouldBe` "foo"

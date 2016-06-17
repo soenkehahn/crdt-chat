@@ -1,6 +1,6 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeSynonymInstances #-}
@@ -9,11 +9,11 @@
 
 module Client where
 
-import           CRDT.TreeVector
-import           CRDT.TreeVector.Internal
 import           Control.Concurrent
 import           Control.DeepSeq
 import           Control.Monad.Trans.Except
+import           Data.Crdt.TreeVector
+import           Data.Crdt.TreeVector.Internal
 import           Data.Foldable
 import           Data.Functor
 import           Data.Monoid
@@ -61,13 +61,12 @@ instance NFData Msg
 instance NFData a => NFData (TreeVector a)
 instance NFData a => NFData (Node a)
 instance NFData a => NFData (Element a)
-instance NFData CRDT.TreeVector.Client
+instance NFData Data.Crdt.TreeVector.Client
 
 instance StoreData Model where
   type StoreAction Model = Msg
-  transform msg (Model doc inputField) = case msg of
-    Update new -> return $ Model (doc <> new) inputField
-    Sync -> do
+  transform = \ case
+    Sync -> \ model@(Model doc _) -> do
       _ <- forkIO $ do
         baseUrl <- sameOriginBaseUrl Nothing
         result <- runExceptT $
@@ -76,13 +75,17 @@ instance StoreData Model where
         case result of
           Right new ->
             alterStore store $ Update new
-      return $ Model doc inputField
+      return model
 
-    Input s -> return $ Model doc s
-    Enter -> return $ Model
-      (mkPatch (Client 0) doc (getVector doc ++ [inputField]))
-      ""
-    Debug msg -> putStrLn msg $> Model doc inputField
+    Update new -> \ (Model doc inputField) -> do
+      return $ Model (doc <> new) inputField
+
+    Input s -> \ (Model doc _) ->
+      return $ Model doc s
+    Enter -> \ (Model old new) ->
+      return $ Model (old <> mkPatch (Client 0) old (getVector old ++ [new])) ""
+
+    Debug msg -> \ model -> putStrLn msg $> model
 
 viewPatches :: ReactView ()
 viewPatches = defineControllerView "patches app" store $ \ model () -> do
@@ -90,18 +93,30 @@ viewPatches = defineControllerView "patches app" store $ \ model () -> do
     forM_ (getVector (document model)) $ \ message -> do
       li_ [] $ do
         text_ $ fromString $ cs message
-  input_ $
-    "value" &= inputField model :
-    (onInput $ \ event -> [SomeStoreAction store (Input (target event "value"))]) :
-    (onEnter $ \ _ _ -> [SomeStoreAction store Enter]) :
-    []
+  view chatInput () mempty
   br_ []
   text_ $ fromString $ show (getVector $ document model)
   br_ []
-  text_ $ fromString $ show (document model)
+  text_ $ fromString $ show model
+
+chatInput :: ReactView ()
+chatInput = defineControllerView "chat input" store $ \ model () -> do
+  input_ $
+    ("value" &= inputField model) :
+    (onInput $ \ event ->
+       SomeStoreAction store (Input (target event "value")) :
+       SomeStoreAction store (Debug (show event)) :
+       []) :
+    (onEnter $ \ _ _ -> [SomeStoreAction store Enter]) :
+    []
+
+-- * view utils
 
 onEnter :: (Event -> KeyboardEvent -> [SomeStoreAction]) -> PropertyOrHandler [SomeStoreAction]
 onEnter action = onKeyDown $ \ event keyboardEvent ->
   case keyCode keyboardEvent of
     13 -> action event keyboardEvent
     _ -> []
+
+textfield_ :: [PropertyOrHandler eventHandler] -> ReactElementM eventHandler ()
+textfield_ props = textarea_ props (return ())

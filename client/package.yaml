@@ -29,6 +29,8 @@ tests:
       - src
     dependencies:
       - hspec
+      - QuickCheck
+      - quickcheck-instances
 
 executables:
   patches-client:

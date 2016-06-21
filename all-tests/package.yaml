@@ -22,6 +22,10 @@ tests:
       - deepseq
       - servant-client
       - transformers
+      - quickcheck-instances
+      - QuickCheck
+      - string-conversions
+      - text
       - wai
       - wai-make-assets
       - servant-server

@@ -6,7 +6,7 @@ start-server:
 	stack exec -- patches-server
 
 start-sensei:
-	STACK_YAML=stack-run-tests.yaml stack exec -- sensei-web all-tests/AllTests.hs
+	STACK_YAML=stack-run-tests.yaml stack exec -- sensei-web all-tests/AllTests.hs -Wall -- --fail-fast
 
 seito:
 	seito

@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -15,7 +14,9 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Trans.Except
 import           Data.Crdt.TreeVector
+import           Data.Crdt.TreeVector.Cursor
 import           Data.Crdt.TreeVector.Internal
+import           Data.Crdt.TreeVector.Pretty
 import           Data.Functor
 import           Data.Monoid
 import           Data.String
@@ -100,19 +101,31 @@ transformServer = \ case
           alterStore store $ Server $ Update new
     return model
 
-  Update new -> \ (Model doc cursor) -> do
-    return $ Model (doc <> new) cursor
+  Update new -> \ (Model doc index) -> do
+    let cursor = toCursor doc index
+        newDoc = doc <> new
+    return $ Model newDoc (fromCursor newDoc cursor)
 
 transformUi :: Ui -> Model -> IO Model
 transformUi = \ case
-  Enter new -> \ (Model old cursor) -> do
-    return $ Model
-      (old <> mkPatch (Client 0) old (getVector old ++ [new]))
-      cursor
+  Enter newMessage -> \ (Model oldDoc cursor) -> do
+    let oldVector = getVector oldDoc
+        newVector = insertAt cursor newMessage oldVector
+        newDoc = oldDoc <> mkPatch (Client 0) oldDoc newVector
+    return $ Model newDoc cursor
   UpArrow -> \ (Model doc cursor) ->
     return $ Model doc (max 0 (cursor - 1))
   DownArrow -> \ (Model doc cursor) ->
     return $ Model doc (min (length $ getVector doc) (cursor + 1))
+
+-- * transform utils
+
+insertAt :: Int -> a -> [a] -> [a]
+insertAt i e list =
+  let (prefix, suffix) = splitAt i list in
+  prefix ++ [e] ++ suffix
+
+-- * view
 
 viewPatches :: ReactView ()
 viewPatches = defineControllerView "patches app" store $ \ model () -> do
@@ -124,22 +137,23 @@ viewPatches = defineControllerView "patches app" store $ \ model () -> do
         text_ $ fromString $ cs m
         br_ []
       when (index == cursor model) $ do
-        hr_ []
+        view chatInput () mempty
 
-    view chatInput () mempty
-    br_ []
     text_ $ fromString $ show (getVector $ document model)
     br_ []
     text_ $ fromString $ show model
+    pre_ $ fromString $ ppTree $ document model
     br_ []
 
 chatInput :: ReactView ()
 chatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
+  text_ $ fromString ">>> "
   input_ $
     ("value" &= text) :
     (onInput $ \ event _ -> ([], Just $ target event "value")) :
     (onEnter $ \ _ _ text -> ([SomeStoreAction store (Ui $ Enter text)], Just "")) :
     []
+  br_ []
 
 -- * view utils
 

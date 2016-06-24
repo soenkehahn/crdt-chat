@@ -20,21 +20,31 @@ import           Client
 
 spec :: Spec
 spec = do
+  describe "insertAt" $ do
+    it "inserts at the given index" $ do
+      insertAt 1 'x' "ab" `shouldBe` "axb"
+
   describe "transformServer" $ do
     context "Update" $ do
       it "incorporates updates" $ do
         let model :: Model
             model = Model mempty 0
             update = mkPatch (Client 0) mempty ["foo"]
-        transformServer (Update update) model `shouldReturn` Model update 0
+        transformServer (Update update) model `shouldReturn` Model update 1
 
   describe "transformUi" $ modifyMaxSize (min 10) $ do
-    context "Input" $ do
+    context "Enter" $ do
       it "changes the model" $ do
         let model :: Model
             model = Model mempty 0
         Model doc _ <- transformUi (Enter "foo") model
         getVector doc `shouldBe` ["foo"]
+
+      it "inserts the messages at the cursor position" $ do
+        let doc = mkPatch (Client 0) mempty ["foo", "bar"]
+            model = Model doc 1
+        Model new _ <- transformUi (Enter "huhu") model
+        getVector new `shouldBe` ["foo", "huhu", "bar"]
 
     context "the cursor" $ do
       it "increases + 1 through DownArrow" $ do
@@ -52,6 +62,13 @@ spec = do
         it "is never too small" $ do
           forAllModels $ \ (Model doc cursor) -> do
             cursor <= (length (getVector doc))
+
+      it "uses the crdt cursor" $ do
+        let initialDoc = mkPatch (Client 0) mempty ["foo"]
+            initialModel = Model initialDoc 1
+            fromServer = mkPatch (Client 1) initialDoc ["bar", "foo"]
+        newModel <- transformServer (Update fromServer) initialModel
+        cursor newModel `shouldBe` 2
 
 forAllModels :: Testable t => (Model -> t) -> Property
 forAllModels cont = property $ \ (messages :: [Msg]) -> ioProperty $ do

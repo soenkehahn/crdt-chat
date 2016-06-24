@@ -43,6 +43,7 @@ run = do
 
 data Model
   = Model {
+    errors :: [Text],
     document :: Document,
     cursor :: Int
   }
@@ -52,13 +53,14 @@ store :: ReactStore Model
 store = mkStore initial
 
 initial :: Model
-initial = Model mempty 0
+initial = Model [] mempty 0
 
 data Msg
   = Server Server
   | Ui Ui
 
   | Debug String
+  | Error Text
   deriving (Generic, Show)
 
 data Server
@@ -86,10 +88,12 @@ instance StoreData Model where
     Server msg -> transformServer msg
     Ui msg -> transformUi msg
     Debug msg -> \ model -> putStrLn msg $> model
+    Error msg -> \ (Model errors doc cursor) ->
+      return $ Model (errors ++ [msg]) doc cursor
 
 transformServer :: Server -> Model -> IO Model
 transformServer = \ case
-  Sync -> \ model@(Model doc _) -> do
+  Sync -> \ model@(Model _ doc _) -> do
     _ <- forkIO $ do
       putStrLn "syncing..."
       baseUrl <- sameOriginBaseUrl Nothing
@@ -100,24 +104,26 @@ transformServer = \ case
       case result of
         Right new ->
           alterStore store $ Server $ Update new
+        Left err ->
+          alterStore store $ Error $ cs $ show err
     return model
 
-  Update new -> \ (Model doc index) -> do
+  Update new -> \ (Model errors doc index) -> do
     let cursor = toCursor doc index
         newDoc = doc <> new
-    return $ Model newDoc (fromCursor newDoc cursor)
+    return $ Model errors newDoc (fromCursor newDoc cursor)
 
 transformUi :: Ui -> Model -> IO Model
 transformUi = \ case
-  Enter newMessage -> \ (Model oldDoc cursor) -> do
+  Enter newMessage -> \ (Model errors oldDoc cursor) -> do
     let oldVector = getVector oldDoc
         newVector = insertAt cursor newMessage oldVector
         newDoc = oldDoc <> mkPatch (Client 0) oldDoc newVector
-    return $ Model newDoc cursor
-  UpArrow -> \ (Model doc cursor) ->
-    return $ Model doc (max 0 (cursor - 1))
-  DownArrow -> \ (Model doc cursor) ->
-    return $ Model doc (min (length $ getVector doc) (cursor + 1))
+    return $ Model errors newDoc cursor
+  UpArrow -> \ (Model errors doc cursor) ->
+    return $ Model errors doc (max 0 (cursor - 1))
+  DownArrow -> \ (Model errors doc cursor) ->
+    return $ Model errors doc (min (length $ getVector doc) (cursor + 1))
 
 -- * transform utils
 
@@ -130,24 +136,35 @@ insertAt i e list =
 
 viewPatches :: ReactView ()
 viewPatches = defineControllerView "patches app" store $ \ model () -> do
-  div_ [arrowEvents] $ do
+  viewErrors $ errors model
+  viewChatMessages model
+  viewDebug model
 
+viewErrors :: [Text] -> ReactElementM ViewEventHandler ()
+viewErrors = \ case
+  [] -> return ()
+  errs -> do
+    "Some errors were encountered:"
+    ul_ [] $ do
+      forM_ errs $ \ err -> do
+        li_ [] $ do
+          fromString $ cs err
+    hr_ []
+
+viewChatMessages :: Model -> ReactElementM ViewEventHandler ()
+viewChatMessages model = do
+  div_ [arrowEvents] $ do
     let elements = zip (Nothing : map Just (getVector (document model))) [0 ..]
     forM_ elements $ \ (message, index) -> do
       forM_ message $ \ m -> do
         text_ $ fromString $ cs m
         br_ []
       when (index == cursor model) $ do
-        view chatInput () mempty
+        view viewChatInput () mempty
 
-    text_ $ fromString $ show (getVector $ document model)
-    br_ []
-    text_ $ fromString $ show model
-    pre_ $ fromString $ ppTree $ document model
-    br_ []
 
-chatInput :: ReactView ()
-chatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
+viewChatInput :: ReactView ()
+viewChatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
   text_ $ fromString ">>> "
   input_ $
     ("value" &= text) :
@@ -157,8 +174,14 @@ chatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
     []
   br_ []
 
-set :: JSString -> String -> PropertyOrHandler handler
-set name value = property name value
+viewDebug :: Model -> ReactElementM ViewEventHandler ()
+viewDebug model = do
+  text_ $ fromString $ show (getVector $ document model)
+  br_ []
+  text_ $ fromString $ show model
+  br_ []
+  pre_ $ fromString $ ppTree $ document model
+  br_ []
 
 -- * view utils
 
@@ -169,9 +192,6 @@ onEnter action = onKeyDown $ \ event keyboardEvent ->
     13 -> action event keyboardEvent
     _ -> mempty
 
-textfield_ :: [PropertyOrHandler eventHandler] -> ReactElementM eventHandler ()
-textfield_ props = textarea_ props (return ())
-
 arrowEvents :: PropertyOrHandler [SomeStoreAction]
 arrowEvents = onKeyDown $ \ _ keyboardEvent ->
   maybe [] (\ msg -> [SomeStoreAction store (Ui msg)]) $
@@ -179,3 +199,6 @@ arrowEvents = onKeyDown $ \ _ keyboardEvent ->
    38 -> Just UpArrow
    40 -> Just DownArrow
    _ -> Nothing
+
+set :: JSString -> String -> PropertyOrHandler handler
+set name value = property name value

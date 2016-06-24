@@ -24,48 +24,53 @@ spec = do
     it "inserts at the given index" $ do
       insertAt 1 'x' "ab" `shouldBe` "axb"
 
+  describe "transform" $ do
+    context "Error" $ do
+      it "adds the error to the model to be displayed" $ do
+        (errors <$> transform (Error "foo") initial) `shouldReturn` ["foo"]
+
   describe "transformServer" $ do
     context "Update" $ do
       it "incorporates updates" $ do
-        let model :: Model
-            model = Model mempty 0
-            update = mkPatch (Client 0) mempty ["foo"]
-        transformServer (Update update) model `shouldReturn` Model update 1
+        let update = mkPatch (Client 0) mempty ["foo"]
+        new <- transformServer (Update update) initial
+        document new `shouldBe` update
 
   describe "transformUi" $ modifyMaxSize (min 10) $ do
     context "Enter" $ do
       it "changes the model" $ do
-        let model :: Model
-            model = Model mempty 0
-        Model doc _ <- transformUi (Enter "foo") model
+        doc <- document <$> transformUi (Enter "foo") initial
         getVector doc `shouldBe` ["foo"]
 
       it "inserts the messages at the cursor position" $ do
         let doc = mkPatch (Client 0) mempty ["foo", "bar"]
-            model = Model doc 1
-        Model new _ <- transformUi (Enter "huhu") model
+            model = Model [] doc 1
+        new <- document <$> transformUi (Enter "huhu") model
         getVector new `shouldBe` ["foo", "huhu", "bar"]
 
     context "the cursor" $ do
       it "increases + 1 through DownArrow" $ do
         let doc = mkPatch (Client 0) mempty ["foo"]
-        transformUi DownArrow (Model doc 0) `shouldReturn` Model doc 1
+            model = Model [] doc 0
+        cursor <$> transformUi DownArrow model `shouldReturn` 1
 
       it "decreases - 1 through UpArrow" $ do
-        transformUi UpArrow (Model mempty 1) `shouldReturn` Model mempty 0
+        let doc = mkPatch (Client 0) mempty ["foo"]
+            model = Model [] doc 1
+        cursor <$> transformUi UpArrow model `shouldReturn` 0
 
       context "is never out of bounds" $ do
         it "is never too big" $ do
-          forAllModels $ \ (Model _ cursor) -> do
-            cursor >= 0
+          forAllModels $ \ model -> do
+            cursor model >= 0
 
         it "is never too small" $ do
-          forAllModels $ \ (Model doc cursor) -> do
-            cursor <= (length (getVector doc))
+          forAllModels $ \ model -> do
+            cursor model <= (length (getVector (document model)))
 
       it "uses the crdt cursor" $ do
         let initialDoc = mkPatch (Client 0) mempty ["foo"]
-            initialModel = Model initialDoc 1
+            initialModel = Model [] initialDoc 1
             fromServer = mkPatch (Client 1) initialDoc ["bar", "foo"]
         newModel <- transformServer (Update fromServer) initialModel
         cursor newModel `shouldBe` 2

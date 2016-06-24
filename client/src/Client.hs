@@ -25,6 +25,7 @@ import           Data.Text (Text)
 import           GHC.Generics
 import           Network.HTTP.Client
 import           React.Flux
+import           React.Flux.Internal (JSString)
 import           Servant.API
 import           Servant.Client
 import           Servant.Common.Req
@@ -150,10 +151,14 @@ chatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
   text_ $ fromString ">>> "
   input_ $
     ("value" &= text) :
+    (set "autoFocus" "true") :
     (onInput $ \ event _ -> ([], Just $ target event "value")) :
     (onEnter $ \ _ _ text -> ([SomeStoreAction store (Ui $ Enter text)], Just "")) :
     []
   br_ []
+
+set :: JSString -> String -> PropertyOrHandler handler
+set name value = property name value
 
 -- * view utils
 

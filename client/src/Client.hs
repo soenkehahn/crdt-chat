@@ -119,7 +119,7 @@ transformUi = \ case
     let oldVector = getVector oldDoc
         newVector = insertAt cursor newMessage oldVector
         newDoc = oldDoc <> mkPatch (Client 0) oldDoc newVector
-    return $ Model errors newDoc cursor
+    return $ Model errors newDoc (succ cursor)
   UpArrow -> \ (Model errors doc cursor) ->
     return $ Model errors doc (max 0 (cursor - 1))
   DownArrow -> \ (Model errors doc cursor) ->
@@ -161,7 +161,6 @@ viewChatMessages model = do
         br_ []
       when (index == cursor model) $ do
         view viewChatInput () mempty
-
 
 viewChatInput :: ReactView ()
 viewChatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do

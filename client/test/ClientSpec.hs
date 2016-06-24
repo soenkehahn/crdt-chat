@@ -75,6 +75,12 @@ spec = do
         newModel <- transformServer (Update fromServer) initialModel
         cursor newModel `shouldBe` 2
 
+      it "increases the cursor when adding a message" $ do
+        let doc = mkPatch (Client 0) mempty ["foo", "bar"]
+            model = Model [] doc 1
+        new <- transformUi (Enter "huhu") model
+        cursor new `shouldBe` 2
+
 forAllModels :: Testable t => (Model -> t) -> Property
 forAllModels cont = property $ \ (messages :: [Msg]) -> ioProperty $ do
   model <- foldM (\ m msg -> transform msg m) initial messages

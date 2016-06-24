@@ -2,9 +2,9 @@
 
 module ServerSpec where
 
-import           Data.Crdt.TreeVector
 import           Control.Exception (throwIO, ErrorCall(..))
 import           Control.Monad.Trans.Except
+import           Data.Crdt.TreeVector
 import           Network.HTTP.Client
 import           Network.Wai.Handler.Warp as Warp
 import           Servant.API
@@ -26,7 +26,7 @@ spec = do
         try port (sync mempty) `shouldReturn` (mempty :: Document)
 
       it "allows to send a patch" $ \ port -> do
-        let patch = mkPatch (Client 0) mempty ["foo"]
+        let patch = mkPatch nilClient mempty ["foo"]
         synced <- try port (sync patch)
         synced `shouldBe` patch
 

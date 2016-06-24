@@ -1,3 +1,5 @@
+- use different clients
+- clean up cursor stuff
 - Allow threads
 - don't recalculate
 - uuids?

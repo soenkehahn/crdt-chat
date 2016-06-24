@@ -2,5 +2,6 @@
 /client/.stack-work/
 /client/patches-client.cabal
 /patches.cabal
-/all-tests/.stack-work/
+/all-tests/.stack-run-tests-work/
 /all-tests/run-tests.cabal
+/.stack-run-tests-work/

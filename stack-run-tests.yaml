@@ -1,3 +1,4 @@
+work-dir: .stack-run-tests-work
 resolver: lts-5.12
 packages:
   - ./all-tests/

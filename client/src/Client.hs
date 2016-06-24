@@ -135,10 +135,11 @@ insertAt i e list =
 -- * view
 
 viewPatches :: ReactView ()
-viewPatches = defineControllerView "patches app" store $ \ model () -> do
-  viewErrors $ errors model
-  viewChatMessages model
-  viewDebug model
+viewPatches = defineControllerView "patches app" store $ \ model () ->
+  center $ do
+    viewErrors $ errors model
+    viewChatMessages model
+    viewDebug model
 
 viewErrors :: [Text] -> ReactElementM ViewEventHandler ()
 viewErrors = \ case
@@ -175,11 +176,13 @@ viewChatInput = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
 
 viewDebug :: Model -> ReactElementM ViewEventHandler ()
 viewDebug model = do
+  hr_ []
+  h4_ [] "debugging:"
+  pre_ $ fromString $ ppTree $ document model
+  br_ []
   text_ $ fromString $ show (getVector $ document model)
   br_ []
   text_ $ fromString $ show model
-  br_ []
-  pre_ $ fromString $ ppTree $ document model
   br_ []
 
 -- * view utils
@@ -201,3 +204,9 @@ arrowEvents = onKeyDown $ \ _ keyboardEvent ->
 
 set :: JSString -> String -> PropertyOrHandler handler
 set name value = property name value
+
+center :: ReactElementM v p -> ReactElementM v p
+center child = do
+  div_ [style [("width", "100%"), ("position", "absolute")]] $ do
+    div_ [style [("width", "600px"), ("margin", "auto")]] $ do
+      child

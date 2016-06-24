@@ -169,7 +169,7 @@ viewErrors = \ case
     ul_ [] $ do
       forM_ errs $ \ err -> do
         li_ [] $ do
-          fromString $ cs err
+          elemText err
     hr_ []
 
 viewChatMessages :: Model -> ReactElementM ViewEventHandler ()
@@ -178,9 +178,7 @@ viewChatMessages model = do
     let elements = zip (Nothing : map Just (getVectorWithClients (document model))) [0 ..]
     forM_ elements $ \ (message, index) -> do
       forM_ message $ \ (Client (_, userName), m) -> do
-        fromString $ cs userName
-        ": "
-        text_ $ fromString $ cs m
+        elemText (userName <> ": " <> m)
         br_ []
       when (index == cursor model) $ do
         view (focusedInput ">>>" (Ui . Enter)) () mempty
@@ -200,8 +198,7 @@ viewDebug model = do
 
 focusedInput :: Text -> (Text -> Msg) -> ReactView ()
 focusedInput label f = defineStatefulView "chat input" "" $ \ (text :: Text) () -> do
-  text_ [] (fromString $ cs label)
-  elemText " "
+  elemText (label <> " ")
   input_ $
     ("value" &= text) :
     (set "autoFocus" "true") :

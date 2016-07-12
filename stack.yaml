@@ -3,7 +3,7 @@ packages:
   - '.'
   - location:
       git: https://github.com/haskell-servant/servant
-      commit: 0c8bd4b
+      commit: 6c5afe8fb3592b1364e2688b61c6007392047fa9
     extra-dep: true
     subdirs:
       - servant

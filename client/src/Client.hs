@@ -29,14 +29,14 @@ import           React.Flux
 import           React.Flux.Internal (JSString)
 import           Servant.API
 import           Servant.Client
-import           Servant.Common.Req
 import           System.Random
 
 import           Api
 import           SameOrigin
 
-sync :: Document -> Manager -> BaseUrl -> ClientM Document
-sync :<|> _ = client api
+new :: Manager -> BaseUrl -> ClientM ChatId
+sync :: ChatId -> Document -> Manager -> BaseUrl -> ClientM Document
+new :<|> sync :<|> _ = client api
 
 run :: IO ()
 run = do
@@ -45,102 +45,118 @@ run = do
 data Model
   = Model {
     errors :: [Text],
+    state :: State
+  }
+  deriving (Eq, Show)
+
+data State
+  = Empty
+  | WithUserName Text
+  | StateChatting Chatting
+  deriving (Eq, Show)
+
+data Chatting
+  = Chatting {
     clientId :: Crdt.Client CId,
+    chatId :: ChatId,
     document :: Document,
     cursor :: Int
   }
   deriving (Eq, Show)
 
-store :: ReactStore (Maybe Model)
-store = mkStore Nothing
+store :: ReactStore Model
+store = mkStore (Model [] Empty)
 
-mkInitial :: Text -> IO Model
-mkInitial userName = do
+toChatting :: Text -> ChatId -> IO Chatting
+toChatting userName chatId = do
   uuid <- randomIO
-  return $ Model [] (Client (uuid, userName)) mempty 0
+  return $ Chatting (Client (uuid, userName)) chatId mempty 0
 
 data Msg
-  = Initialize Text
-  | Server Server
-  | Ui Ui
-
+  = Error Text
   | Debug String
-  | Error Text
+  | SetUserName Text
+  | SetChatId ChatId
+  | ChattingMsg ChattingMsg
   deriving (Generic, Show)
 
-data Server
+data ChattingMsg
   = Update Document
   | Sync
-  deriving (Generic, Show)
-
-data Ui
-  = Enter Text
+  | Enter Text
   | UpArrow
   | DownArrow
   deriving (Generic, Show)
 
 instance NFData Msg
-instance NFData Ui
-instance NFData Server
+instance NFData ChattingMsg
+instance NFData ChatId
 instance NFData a => NFData (TreeVector CId a)
 instance NFData a => NFData (Node CId a)
 instance NFData a => NFData (Element a)
 instance NFData (Crdt.Client CId)
 
-instance StoreData (Maybe Model) where
-  type StoreAction (Maybe Model) = Msg
-  transform msg mModel = case (msg, mModel) of
-    (Initialize userName, Nothing) -> do
+instance StoreData Model where
+  type StoreAction Model = Msg
+  transform msg model@(Model errs state) = case msg of
+    Debug msg -> putStrLn msg $> model
+    Error msg -> return $ Model (errs ++ [msg]) state
+    _ -> Model errs <$> transformState msg state
+
+transformState :: Msg -> State -> IO State
+transformState msg state =
+    case (msg, state) of
+      (SetUserName user, Empty) -> do
+        forkIO $ do
+          baseUrl <- sameOriginBaseUrl Nothing
+          response <- runExceptT $ new (error "manager") baseUrl
+          case response of
+            Right chatId -> alterStore store (SetChatId chatId)
+        return $ WithUserName user
+      (SetChatId chat, WithUserName user) -> do
+        _ <- forkIO $ do
+          alterStore store (ChattingMsg Sync)
+        StateChatting <$> toChatting user chat
+      (ChattingMsg m, StateChatting s) -> StateChatting <$> transform m s
+      (_, _) -> do
+        putStrLn ("state/msg mismatch, discarding message: " ++ show msg)
+        return state
+
+instance StoreData Chatting where
+  type StoreAction Chatting = ChattingMsg
+  transform = \ case
+    Sync -> \ state@(Chatting _ chatId doc _) -> do
       _ <- forkIO $ do
-        alterStore store (Server Sync)
-      Just <$> mkInitial userName
-    (msg, Nothing) -> do
-      putStrLn ("model not initialized, discarding message: " ++ show msg)
-      return Nothing
-    (_, Just model) -> Just <$> transformJust msg model
+        putStrLn "syncing..."
+        baseUrl <- sameOriginBaseUrl Nothing
+        result <- runExceptT $
+          sync chatId doc (error "manager shouldn't be touched") baseUrl
+        putStrLn "received sync data..."
+        case result of
+          Right new ->
+            alterStore store $ ChattingMsg $ Update new
+          Left err ->
+            alterStore store $ Error $ cs $ show err
 
-transformJust :: Msg -> Model -> IO Model
-transformJust = \ case
-  Initialize _ -> return
-  Server msg -> transformServer msg
-  Ui msg -> transformUi msg
-  Debug msg -> \ model -> putStrLn msg $> model
-  Error msg -> \ (Model errors cid doc cursor) ->
-    return $ Model (errors ++ [msg]) cid doc cursor
+        threadDelay 10000000
+        alterStore store (ChattingMsg Sync)
 
-transformServer :: Server -> Model -> IO Model
-transformServer = \ case
-  Sync -> \ model@(Model _ _ doc _) -> do
-    _ <- forkIO $ do
-      putStrLn "syncing..."
-      baseUrl <- sameOriginBaseUrl Nothing
-      result <- runExceptT $
-        sync doc (error "manager shouldn't be touched") baseUrl
-      putStrLn "received sync data..."
-      _ <- forkIO (threadDelay 10000000 >> alterStore store (Server Sync))
-      case result of
-        Right new ->
-          alterStore store $ Server $ Update new
-        Left err ->
-          alterStore store $ Error $ cs $ show err
-    return model
+      return state
 
-  Update new -> \ (Model errors cid doc index) -> do
-    let cursor = toCursor doc index
-        newDoc = doc <> new
-    return $ Model errors cid newDoc (fromCursor newDoc cursor)
+    Update new -> \ (Chatting cid chatId doc index) -> do
+      let cursor = toCursor doc index
+          newDoc = doc <> new
+      return $ Chatting cid chatId newDoc (fromCursor newDoc cursor)
 
-transformUi :: Ui -> Model -> IO Model
-transformUi = \ case
-  Enter newMessage -> \ (Model errors cid oldDoc cursor) -> do
-    let oldVector = getVector oldDoc
-        newVector = insertAt cursor newMessage oldVector
-        newDoc = oldDoc <> mkPatch cid oldDoc newVector
-    return $ Model errors cid newDoc (succ cursor)
-  UpArrow -> \ (Model errors cid doc cursor) ->
-    return $ Model errors cid doc (max 0 (cursor - 1))
-  DownArrow -> \ (Model errors cid doc cursor) ->
-    return $ Model errors cid doc (min (length $ getVector doc) (cursor + 1))
+    Enter newMessage -> \ (Chatting cid chatId oldDoc cursor) -> do
+      let oldVector = getVector oldDoc
+          newVector = insertAt cursor newMessage oldVector
+          newDoc = oldDoc <> mkPatch cid oldDoc newVector
+      return $ Chatting cid chatId newDoc (succ cursor)
+    UpArrow -> \ (Chatting cid chatId doc cursor) ->
+      return $ Chatting cid chatId doc (max 0 (cursor - 1))
+    DownArrow -> \ (Chatting cid chatId doc cursor) ->
+      return $ Chatting cid chatId doc (min (length $ getVector doc) (cursor + 1))
 
 -- * transform utils
 
@@ -152,14 +168,15 @@ insertAt i e list =
 -- * view
 
 viewPatches :: ReactView ()
-viewPatches = defineControllerView "patches app" store $ \ mModel () ->
-  case mModel of
-    Nothing -> center $ do
-      view (focusedInput "name:" Initialize) () mempty
-    Just model -> center $ do
-      viewErrors $ errors model
-      viewChatMessages model
-      viewDebug model
+viewPatches = defineControllerView "patches app" store $ \ model () -> do
+  viewErrors $ errors model
+  case state model of
+    Empty -> center $ do
+      view (focusedInput "name:" SetUserName) () mempty
+    WithUserName _ -> center $ "loading..."
+    StateChatting chatting -> center $ do
+      viewChatMessages chatting
+      viewDebug chatting
 
 viewErrors :: [Text] -> ReactElementM ViewEventHandler ()
 viewErrors = \ case
@@ -172,26 +189,26 @@ viewErrors = \ case
           elemText err
     hr_ []
 
-viewChatMessages :: Model -> ReactElementM ViewEventHandler ()
-viewChatMessages model = do
+viewChatMessages :: Chatting -> ReactElementM ViewEventHandler ()
+viewChatMessages state = do
   div_ [arrowEvents] $ do
-    let elements = zip (Nothing : map Just (getVectorWithClients (document model))) [0 ..]
+    let elements = zip (Nothing : map Just (getVectorWithClients (document state))) [0 ..]
     forM_ elements $ \ (message, index) -> do
       forM_ message $ \ (Client (_, userName), m) -> do
         elemText (userName <> ": " <> m)
         br_ []
-      when (index == cursor model) $ do
-        view (focusedInput ">>>" (Ui . Enter)) () mempty
+      when (index == cursor state) $ do
+        view (focusedInput ">>>" (ChattingMsg . Enter)) () mempty
 
-viewDebug :: Model -> ReactElementM ViewEventHandler ()
-viewDebug model = do
+viewDebug :: Chatting -> ReactElementM ViewEventHandler ()
+viewDebug state = do
   hr_ []
   h4_ [] "debugging:"
-  pre_ $ fromString $ ppTree $ document model
+  pre_ $ fromString $ ppTree $ document state
   br_ []
-  text_ $ fromString $ show (getVector $ document model)
+  text_ $ fromString $ show (getVector $ document state)
   br_ []
-  text_ $ fromString $ show model
+  text_ $ fromString $ show state
   br_ []
 
 -- * view utils
@@ -216,7 +233,7 @@ onEnter action = onKeyDown $ \ event keyboardEvent ->
 
 arrowEvents :: PropertyOrHandler [SomeStoreAction]
 arrowEvents = onKeyDown $ \ _ keyboardEvent ->
-  maybe [] (\ msg -> [SomeStoreAction store (Ui msg)]) $
+  maybe [] (\ msg -> [SomeStoreAction store (ChattingMsg msg)]) $
   case keyCode keyboardEvent of
    38 -> Just UpArrow
    40 -> Just DownArrow

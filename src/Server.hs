@@ -2,7 +2,6 @@
 module Server where
 
 import           Control.Monad.IO.Class
-import           Control.Monad.Trans.Except
 import           Network.Wai
 import           Network.Wai.MakeAssets
 import           Servant
@@ -18,10 +17,15 @@ mkApp = do
 
 server :: Application -> Db -> Server Api
 server assets db =
-  Server.sync db :<|>
+  Server.newChat db :<|>
+  chatSync db :<|>
+  const assets :<|>
   assets
 
-type Handler = ExceptT ServantErr IO
+newChat :: Db -> Handler ChatId
+newChat db = liftIO $ Db.newChat db
 
-sync :: Db -> Document -> Handler Document
-sync db new = liftIO $ Db.sync db new
+chatSync :: Db -> ChatId -> Document -> Handler Document
+chatSync db chatId new = do
+  mDoc <- liftIO $ Db.sync db chatId new
+  maybe (throwError err404) return mDoc

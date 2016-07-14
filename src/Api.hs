@@ -30,7 +30,6 @@ type Api =
   "api" :> "new" :> Post '[JSON] ChatId :<|>
   "api" :> Capture "chat-id" ChatId :> "sync" :> ReqBody '[JSON] Document
     :> Post '[JSON] Document :<|>
-  Capture "chat-id" ChatId :> Raw :<|>
   Raw
 
 api :: Proxy Api

@@ -19,7 +19,6 @@ server :: Application -> Db -> Server Api
 server assets db =
   Server.newChat db :<|>
   chatSync db :<|>
-  const assets :<|>
   assets
 
 newChat :: Db -> Handler ChatId

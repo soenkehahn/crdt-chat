@@ -10,17 +10,17 @@ packages:
       - servant
       - servant-client
       - servant-server
-  - location: /home/shahn/src/crdt-tree-vector
-    #  git: https://github.com/soenkehahn/crdt-tree-vector
-    #  commit: 7c98fa4
+  - location:
+      git: https://github.com/soenkehahn/crdt-tree-vector
+      commit: 2fde344
     extra-dep: true
-  - location: ../react-flux
-    extra-dep: true
-  - location: ../operational-mocks
+  - location:
+      git: https://github.com/soenkehahn/operational-mocks
+      commit: 45a28ad
     extra-dep: true
 extra-deps:
   - wai-make-assets-0.1.1
   - warp-3.2.6
   - http2-1.6.0
-  - react-flux-1.1.0
+  - react-flux-1.1.1
   - ghcjs-base-0.2.0.0

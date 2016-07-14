@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
@@ -38,9 +39,11 @@ api = Proxy
 -- * types
 
 instance FromJSON UUID where
-  parseJSON v = case v of
+  parseJSON = \ case
     String s -> case fromString $ cs s of
       Just uuid -> return uuid
+      Nothing -> fail $ "invalid uuid: " ++ cs s
+    v -> fail $ "expected: String, got: " ++ show v
 
 data ChatId = ChatId UUID
   deriving (Eq, Ord, Show, Generic)

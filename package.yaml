@@ -30,6 +30,7 @@ tests:
       - hspec
       - http-client
       - servant-client
+      - mockery
 
 executables:
   patches-server:

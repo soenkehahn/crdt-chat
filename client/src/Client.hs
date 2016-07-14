@@ -29,14 +29,21 @@ import           React.Flux
 import           React.Flux.Internal (JSString)
 import           Servant.API
 import           Servant.Client
-import           System.Random
 
 import           Api
+import           Primitive
 import           SameOrigin
 
 new :: Manager -> BaseUrl -> ClientM ChatId
 sync :: ChatId -> Document -> Manager -> BaseUrl -> ClientM Document
 new :<|> sync :<|> _ = client api
+
+withApiCall :: ClientCommand (Either ServantError a) -> (a -> ClientCommand ()) -> ClientCommand ()
+withApiCall apiCall action = do
+  result <- apiCall
+  case result of
+    Right response -> action response
+    Left err -> alterStoreP store $ Error $ cs $ show err
 
 run :: IO ()
 run = do
@@ -67,9 +74,10 @@ data Chatting
 store :: ReactStore Model
 store = mkStore (Model [] Empty)
 
-toChatting :: Text -> ChatId -> IO Chatting
+toChatting :: Text -> ChatId -> ClientCommand Chatting
 toChatting userName chatId = do
-  uuid <- randomIO
+  uuid <- newUuid
+  setHashFragment chatId
   return $ Chatting (Client (uuid, userName)) chatId mempty 0
 
 data Msg
@@ -78,7 +86,7 @@ data Msg
   | SetUserName Text
   | SetChatId ChatId
   | ChattingMsg ChattingMsg
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 data ChattingMsg
   = Update Document
@@ -86,7 +94,7 @@ data ChattingMsg
   | Enter Text
   | UpArrow
   | DownArrow
-  deriving (Generic, Show)
+  deriving (Generic, Show, Eq)
 
 instance NFData Msg
 instance NFData ChattingMsg
@@ -98,28 +106,38 @@ instance NFData (Crdt.Client CId)
 
 instance StoreData Model where
   type StoreAction Model = Msg
-  transform msg model@(Model errs state) = case msg of
+  transform msg model@(Model errs state) = do
+   print msg
+   case msg of
     Debug msg -> putStrLn msg $> model
     Error msg -> return $ Model (errs ++ [msg]) state
-    _ -> Model errs <$> transformState msg state
+    _ -> Model errs <$> Primitive.run (transformState msg state)
 
-transformState :: Msg -> State -> IO State
+transformState :: Msg -> State -> ClientCommand State
 transformState msg state =
     case (msg, state) of
       (SetUserName user, Empty) -> do
-        forkIO $ do
-          baseUrl <- sameOriginBaseUrl Nothing
-          response <- runExceptT $ new (error "manager") baseUrl
-          case response of
-            Right chatId -> alterStore store (SetChatId chatId)
-        return $ WithUserName user
+        hash <- getHashFragment
+        case hash of
+          Left err -> do
+            fork $ alterStoreP store (Error $ cs err)
+            return $ WithUserName user
+          Right Nothing -> do
+            fork $ do
+              withApiCall newChat $ \ chatId ->
+                alterStoreP store (SetChatId chatId)
+            return $ WithUserName user
+          Right (Just chatId) -> do
+            _ <- fork $ do
+              alterStoreP store (ChattingMsg Sync)
+            StateChatting <$> toChatting user chatId
       (SetChatId chat, WithUserName user) -> do
-        _ <- forkIO $ do
+        _ <- fork $ io $ do
           alterStore store (ChattingMsg Sync)
         StateChatting <$> toChatting user chat
-      (ChattingMsg m, StateChatting s) -> StateChatting <$> transform m s
+      (ChattingMsg m, StateChatting s) -> io $ StateChatting <$> transform m s
       (_, _) -> do
-        putStrLn ("state/msg mismatch, discarding message: " ++ show msg)
+        io $ putStrLn ("state/msg mismatch, discarding message: " ++ show msg)
         return state
 
 instance StoreData Chatting where

@@ -1,26 +1,34 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module ClientSpec where
 
+import           Control.Exception
 import           Control.Monad
+import           Control.Monad.Operational.Mocks
 import           Data.Crdt.TreeVector
 import           Data.Crdt.TreeVector.Internal
 import           Data.List
 import qualified Data.Map
 import           Data.Text (Text)
+import           Data.Typeable
 import           Data.UUID
 import           React.Flux (transform)
 import           Test.Hspec
 import           Test.Hspec.QuickCheck
 import           Test.QuickCheck
 import           Test.QuickCheck.Instances ()
+import           Unsafe.Coerce
 
 import           Api
 import           Client
+import           Primitive
 
 spec :: Spec
 spec = do
@@ -35,16 +43,38 @@ spec = do
 
     context "SetUserName" $ do
       it "initializes the model with the given username" $ do
-        transform (SetUserName "foo") (Model [] Empty) `shouldReturn`
-          Model [] (WithUserName "foo")
+        testWithMock (transformState (SetUserName "foo") Empty) $
+          GetHashFragment `returns` (Right Nothing) `andThen`
+          testPrimitive isFork () `andThen`
+          result (WithUserName "foo")
+
+      it "asks the server to create a new chat" $ do
+        let asksForNewChat =
+              NewChat `returns` (Right oneChatId) `andThen`
+              isAlterStore (SetChatId oneChatId) `andThen`
+              result ()
+        testWithMock (transformState (SetUserName "user") Empty) $
+          GetHashFragment `returns` (Right Nothing) `andThen`
+          testPrimitive (isForkMocked asksForNewChat) () `andThen`
+          result (WithUserName "user")
+
+      it "takes the chat-id from the address bar, if available" $ do
+        testWithMock (transformState (SetUserName "user") Empty) $
+          GetHashFragment `returns` (Right $ Just $ ChatId oneUuid) `andThen`
+          testPrimitive (isForkMocked syncMock) () `andThen`
+          NewUuid `returns` twoUuid `andThen`
+          SetHashFragment (ChatId oneUuid) `returns` () `andThen` -- fixme: remove?
+          result (StateChatting $ Chatting
+            (Client (twoUuid, "user")) (ChatId oneUuid) mempty 0)
 
     context "SetChatId" $ do
       it "starts the chat" $ do
-        Model [] (StateChatting new) <-
-          return (Model [] Empty) >>=
-          transform (SetUserName "user") >>=
-          transform (SetChatId oneChatId)
-        chatId new `shouldBe` oneChatId
+        testWithMock (transformState (SetChatId oneChatId) (WithUserName "user")) $
+          testPrimitive isFork () `andThen`
+          NewUuid `returns` twoUuid `andThen`
+          SetHashFragment oneChatId `returns` () `andThen`
+          result (StateChatting
+            (Chatting (Client (twoUuid, "user")) oneChatId mempty 0))
 
   describe "transform Chatting" $ do
     context "Update" $ do
@@ -62,8 +92,10 @@ spec = do
       it "creates a message with the model client id" $ do
         let model = nilChatting{ clientId = oneClient }
         doc <- document <$> transform (Enter "foo") model
-        let [(client, _)] = Data.Map.toList $ treeMap doc
-        client `shouldSatisfy` (/= nilClient)
+        case Data.Map.toList $ treeMap doc of
+          [(client, _)] -> do
+            client `shouldSatisfy` (/= nilClient)
+          _ -> error "no match"
 
       it "inserts the messages at the cursor position" $ do
         let doc = mkPatch nilClient mempty ["foo", "bar"]
@@ -137,11 +169,86 @@ nilChatting :: Chatting
 nilChatting = Chatting nilClient oneChatId mempty 0
 
 oneClient :: Client CId
-oneClient = case fromString "3201bc50-7e5c-4f92-be27-22bf429f8443" of
+oneClient = case fromString "3201bc50-7e5c-4f92-be27-000000000000" of
   Just uuid -> Client (uuid, "oneClient")
   Nothing -> error "tests: invalid static UUID"
 
 oneChatId :: ChatId
-oneChatId = case fromString "6306bc50-7e5c-4f92-be27-22bf429f8443" of
+oneChatId = case fromString "6306bc50-7e5c-4f92-be27-aaaaaaaaaaaa" of
   Just uuid -> ChatId uuid
   Nothing -> error "tests: invalid static UUID"
+
+oneUuid :: UUID
+oneUuid = case fromString "6306bc50-7e5c-4f92-be27-ffffffffffff" of
+  Just uuid -> uuid
+  Nothing -> error "tests: invalid static UUID"
+
+twoUuid :: UUID
+twoUuid = case fromString "6306bc50-7e5c-4f92-be27-bbbbbbbbbbbb" of
+  Just uuid -> uuid
+  Nothing -> error "tests: invalid static UUID"
+
+-- * CommandEq
+
+isFork :: Primitive a -> IO (a :~: ())
+isFork = \ case
+  Fork _ -> return Refl
+  _ -> throwIO $ ErrorCall "isFork: no Fork"
+
+isForkMocked :: Mock Primitive () -> Primitive a -> IO (a :~: ())
+isForkMocked mock = \ case
+  Fork realForked -> do
+    testWithMock realForked mock
+    return Refl
+  _ -> throwIO $ ErrorCall "isFork: no Fork"
+
+syncMock :: Mock Primitive ()
+syncMock =
+  isAlterStore (ChattingMsg Sync) `andThen`
+  result ()
+
+isAlterStore :: (Show msg, Eq msg, Typeable msg) =>
+  msg -> MockedPrimitive Primitive ()
+isAlterStore mock = testPrimitive p ()
+  where
+    p :: Primitive a -> IO (a :~: ())
+    p = \ case
+      AlterStore _ msg -> case cast msg of
+        Just msg' -> do
+          msg' `shouldBe` mock
+          return Refl
+        Nothing -> throwIO $ ErrorCall "isAlterStore: incorrect type"
+      _ -> throwIO $ ErrorCall "isAlterStore: no AlterStore"
+
+instance CommandEq Primitive where
+  commandEq a b = case (a, b) of
+    (IO a, IO b) -> case cast a of
+      Nothing -> error "not the same type"
+      Just a' -> return $ Right $ const (unsafeCoerce Refl) (asTypeOf b a')
+    (IO _, _) -> return $ Left ()
+
+    (Fork _, Fork _) -> error "Fork here"
+    (Fork _, _) -> error "Fork should be tested with 'testPrimitive'"
+
+    (GetHashFragment, GetHashFragment) -> return $ Right Refl
+    (GetHashFragment, _) -> return $ Left ()
+    (SetHashFragment a, SetHashFragment b) -> do
+      a `shouldBe` b
+      return $ Right Refl
+
+    (NewUuid, NewUuid) -> return $ Right Refl
+    (NewUuid, _) -> return $ Left ()
+    (NewChat, NewChat) -> return $ Right Refl
+
+    (a, _) -> error ("commandEq: " ++ showConstructor a)
+
+instance ShowConstructor Primitive where
+  showConstructor = \ case
+    IO _ -> "IO"
+    Fork _ -> "Fork"
+
+    GetHashFragment -> "GetHashFragment"
+    SetHashFragment _ -> "SetHashFragment"
+    NewUuid -> "NewUuid"
+    NewChat -> "NewChat"
+    AlterStore _ _ -> "AlterStore"

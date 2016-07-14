@@ -16,6 +16,8 @@ packages:
     extra-dep: true
   - location: ../react-flux
     extra-dep: true
+  - location: ../operational-mocks
+    extra-dep: true
 extra-deps:
   - wai-make-assets-0.1.1
   - warp-3.2.6

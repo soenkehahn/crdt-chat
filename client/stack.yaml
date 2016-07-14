@@ -11,6 +11,8 @@ packages:
     #  git: https://github.com/soenkehahn/crdt-tree-vector
     #  commit: 7c98fa4
     extra-dep: true
+  - location: ../../operational-mocks
+    extra-dep: true
 
 resolver: lts-5.12
 

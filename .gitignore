@@ -5,3 +5,5 @@
 /all-tests/.stack-run-tests-work/
 /all-tests/run-tests.cabal
 /.stack-run-tests-work/
+/ENVIRONMENT
+/all-tests/ENVIRONMENT

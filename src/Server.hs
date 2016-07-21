@@ -1,17 +1,31 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Server where
 
+import           Control.Monad
 import           Control.Monad.IO.Class
+import           Language.Haskell.TH
+import           Language.Haskell.TH.Syntax
 import           Network.Wai
 import           Network.Wai.MakeAssets
 import           Servant
+import           System.Directory
 
 import           Api
 import           Db
 
 mkApp :: IO Application
 mkApp = do
-  assets <- serveAssets
+  assets :: Application <- $(do
+        exists <- runIO $ doesFileExist "ENVIRONMENT"
+        when (not exists) $
+          runIO $ writeFile "ENVIRONMENT" "PRODUCTION"
+        env <- runIO $ readFile "ENVIRONMENT"
+        addDependentFile "ENVIRONMENT"
+        case words env of
+          ["DEVELOPMENT"] -> [|serveAssets def|]
+          ["PRODUCTION"] -> serveAssetsEmbedded def)
   db <- newDb
   return $ serve api (server assets db)
 

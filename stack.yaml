@@ -13,7 +13,10 @@ packages:
       git: https://github.com/soenkehahn/crdt-tree-vector
       commit: 2fde344
     extra-dep: true
+  - location:
+      git: https://github.com/soenkehahn/wai-make-assets
+      commit: 7c43ee0
+    extra-dep: true
 extra-deps:
-  - wai-make-assets-0.1.1
   - warp-3.2.6
   - http2-1.6.0

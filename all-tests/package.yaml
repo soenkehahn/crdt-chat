@@ -45,3 +45,4 @@ tests:
       - bytestring
       - http-types
       - mockery
+      - template-haskell

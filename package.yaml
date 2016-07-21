@@ -18,6 +18,8 @@ dependencies:
       - http-types
       - network-uri
       - random
+      - template-haskell
+      - directory
 
 tests:
   spec:

@@ -23,16 +23,24 @@ dependencies:
 
 tests:
   spec:
-    main: Main.hs
+    main: ServerAndClientTests.hs
     source-dirs:
       - test
       - test/exe
       - src
+      - client/test
+      - client/src
     dependencies:
       - hspec
       - http-client
       - servant-client
       - mockery
+      - operational
+      - operational-mocks
+      - react-flux
+      - QuickCheck
+      - quickcheck-instances
+      - deepseq
 
 executables:
   patches-server:

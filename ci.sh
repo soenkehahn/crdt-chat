@@ -2,10 +2,6 @@
 
 set -o errexit
 
-echo testing server and client...
-echo ============================
-STACK_YAML=stack-run-tests.yaml stack build
-STACK_YAML=stack-run-tests.yaml stack test
 echo testing server...
 echo =================
 stack test

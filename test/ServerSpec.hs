@@ -13,7 +13,7 @@ import           Servant.Client hiding (responseBody)
 import           Test.Hspec
 
 import           Api
-import           Server (mkApp)
+import           Network.Wai.Application.CrdtChat (mkApp)
 
 new :: Manager -> BaseUrl -> ClientM ChatId
 sync :: ChatId -> Document -> Manager -> BaseUrl -> ClientM Document

@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Server where
+module Network.Wai.Application.CrdtChat (mkApp) where
 
 import           Control.Monad
 import           Control.Monad.IO.Class
@@ -13,7 +13,8 @@ import           Servant
 import           System.Directory
 
 import           Api
-import           Db
+import qualified Db
+import           Db hiding (newChat)
 
 mkApp :: IO Application
 mkApp = do
@@ -31,7 +32,7 @@ mkApp = do
 
 server :: Application -> Db -> Server Api
 server assets db =
-  Server.newChat db :<|>
+  newChat db :<|>
   chatSync db :<|>
   assets
 

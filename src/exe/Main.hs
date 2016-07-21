@@ -2,7 +2,7 @@
 import           Network.Wai
 import           Network.Wai.Handler.Warp as Warp
 
-import           Server
+import           Network.Wai.Application.CrdtChat
 
 main :: IO ()
 main = do

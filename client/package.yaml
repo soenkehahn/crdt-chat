@@ -1,4 +1,4 @@
-name: patches-client
+name: crdt-chat-client
 
 dependencies:
       - base < 5

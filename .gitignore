@@ -1,9 +1,5 @@
 /assets/*.js
 /client/.stack-work/
-/client/patches-client.cabal
-/patches.cabal
-/all-tests/.stack-run-tests-work/
-/all-tests/run-tests.cabal
-/.stack-run-tests-work/
 /ENVIRONMENT
-/all-tests/ENVIRONMENT
+/client/crdt-chat-client.cabal
+/crdt-chat.cabal

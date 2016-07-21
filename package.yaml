@@ -1,4 +1,4 @@
-name: patches
+name: crdt-chat
 
 dependencies:
       - base < 5
@@ -26,7 +26,6 @@ tests:
     main: ServerAndClientTests.hs
     source-dirs:
       - test
-      - test/exe
       - src
       - client/test
       - client/src
@@ -48,3 +47,9 @@ executables:
     source-dirs:
       - src
       - src/exe
+
+library:
+  source-dirs:
+    - src
+  exposed-modules:
+    - Network.Wai.Application.CrdtChat

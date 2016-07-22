@@ -6,14 +6,13 @@ module SameOrigin where
 
 #ifdef __GHCJS__
 
-import           Data.Maybe
 import           GHCJS.Prim (fromJSString)
 import           JavaScript.Object
 import           Servant.Client
 import           Text.Read
 
-sameOriginBaseUrl :: Maybe String -> IO BaseUrl
-sameOriginBaseUrl (fromMaybe "" -> path) = do
+sameOriginBaseUrl :: IO BaseUrl
+sameOriginBaseUrl = do
   location <- js_location
   js_protocol <- fromJSString <$> getProp "protocol" location
   let protocol = case js_protocol of
@@ -29,6 +28,7 @@ sameOriginBaseUrl (fromMaybe "" -> path) = do
         _ -> case readMaybe js_port of
           Just p -> p
           Nothing -> error ("unparseable port: " ++ js_port)
+  path <- fromJSString <$> getProp "pathname" location
   return $ BaseUrl protocol host port path
 
 foreign import javascript unsafe "(function () { return location; })()"
@@ -38,7 +38,7 @@ foreign import javascript unsafe "(function () { return location; })()"
 
 import           Servant.Client
 
-sameOriginBaseUrl :: Maybe String -> IO BaseUrl
+sameOriginBaseUrl :: IO BaseUrl
 sameOriginBaseUrl = do
   error "sameOriginBaseUrl through GHC"
 

@@ -61,7 +61,7 @@ run command = case view command of
     SetHashFragment (ChatId uuid) -> do
       js_setHash $ pack $ UUID.toString uuid
     NewChat -> do
-      baseUrl <- sameOriginBaseUrl Nothing
+      baseUrl <- sameOriginBaseUrl
       runExceptT $ new (error "manager") baseUrl
     AlterStore store msg -> do
       _ <- forkIO $ alterStore store msg

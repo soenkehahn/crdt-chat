@@ -146,7 +146,7 @@ instance StoreData Chatting where
     Sync -> \ state@(Chatting _ chatId doc _) -> do
       _ <- forkIO $ do
         putStrLn "syncing..."
-        baseUrl <- sameOriginBaseUrl Nothing
+        baseUrl <- sameOriginBaseUrl
         result <- runExceptT $
           sync chatId doc (error "manager shouldn't be touched") baseUrl
         putStrLn "received sync data..."

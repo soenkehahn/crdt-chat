@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 
@@ -28,8 +29,15 @@ sameOriginBaseUrl = do
         _ -> case readMaybe js_port of
           Just p -> p
           Nothing -> error ("unparseable port: " ++ js_port)
-  path <- fromJSString <$> getProp "pathname" location
+  path <- dropLast <$>
+    fromJSString <$> getProp "pathname" location
   return $ BaseUrl protocol host port path
+
+dropLast :: [a] -> [a]
+dropLast = \ case
+  [_] -> []
+  a : r -> a : dropLast r
+  [] -> []
 
 foreign import javascript unsafe "(function () { return location; })()"
   js_location :: IO Object

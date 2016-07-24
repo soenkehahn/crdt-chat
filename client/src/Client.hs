@@ -156,7 +156,7 @@ instance StoreData Chatting where
           Left err ->
             alterStore store $ Error $ cs $ show err
 
-        threadDelay 10000000
+        threadDelay 400000
         alterStore store (ChattingMsg Sync)
 
       return state

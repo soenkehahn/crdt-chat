@@ -51,7 +51,6 @@ run command = case view command of
     NewUuid -> randomIO
     GetHashFragment -> do
       hash <- js_getHash
-      print hash
       case unpack hash of
         "" -> return $ Right Nothing
         '#' : (UUID.fromString -> Just uuid) ->

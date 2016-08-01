@@ -103,7 +103,6 @@ instance NFData ChatId
 instance StoreData Model where
   type StoreAction Model = Msg
   transform msg model@(Model errs state) = do
-   print msg
    case msg of
     Debug msg -> putStrLn msg $> model
     Error msg -> return $ Model (errs ++ [msg]) state
@@ -141,11 +140,9 @@ instance StoreData Chatting where
   transform = \ case
     Sync -> \ state@(Chatting _ chatId doc _) -> do
       _ <- forkIO $ do
-        putStrLn "syncing..."
         baseUrl <- sameOriginBaseUrl
         result <- runExceptT $
           sync chatId doc (error "manager shouldn't be touched") baseUrl
-        putStrLn "received sync data..."
         case result of
           Right new ->
             alterStore store $ ChattingMsg $ Update new

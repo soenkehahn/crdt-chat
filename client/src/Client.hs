@@ -99,10 +99,6 @@ data ChattingMsg
 instance NFData Msg
 instance NFData ChattingMsg
 instance NFData ChatId
-instance NFData a => NFData (TreeVector CId a)
-instance NFData a => NFData (Node CId a)
-instance NFData a => NFData (Element a)
-instance NFData (Crdt.Client CId)
 
 instance StoreData Model where
   type StoreAction Model = Msg

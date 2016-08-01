@@ -39,7 +39,7 @@ tests:
       - quickcheck-instances
 
 executables:
-  patches-client:
+  crdt-chat-client:
     main: Main.hs
     source-dirs:
       - src

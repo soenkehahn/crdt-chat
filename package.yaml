@@ -46,8 +46,9 @@ executables:
   patches-server:
     main: Main.hs
     source-dirs:
-      - src
       - src/exe
+    dependencies:
+      - crdt-chat
 
 library:
   source-dirs:
